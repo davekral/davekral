@@ -1,16 +1,22 @@
-## Hi there 👋
+# Ahoj, jmenuji se David Král! 👋
 
-<!--
-**davekral/davekral** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
+💻 Zajímám se o **Umělou inteligenci, automatizaci a analýzu dat**  
+🚀 Pracuji na **projektu s analýzou Golf With Your Friends**  
+📫 Kontakt: [davidkral03@gmail.com]  
 
-Here are some ideas to get you started:
+---
 
-- 🔭 I’m currently working on ...
-- 🌱 I’m currently learning ...
-- 👯 I’m looking to collaborate on ...
-- 🤔 I’m looking for help with ...
-- 💬 Ask me about ...
-- 📫 How to reach me: ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
--->
+## 📌 Moje projekty
+
+### 🎮 Golf With Your Friends - Analýza odpalu  
+🔗 [Repozitář](https://github.com/davekral/golf-analysis)  
+📖 **Popis:** Automatická detekce síly odpalu a analýza úhlů pomocí OpenCV.  
+
+### 🤖 Automatizace něčeho v Pythonu  
+🔗 [Repozitář](https://github.com/davekral/automation-script)  
+📖 **Popis:** Skript pro automatizaci určitého procesu pomocí Selenium.
+
+### 🌐 Portfolio jako repozitář  
+🔗 [Tento repozitář](https://github.com/davekral)  
+📖 **Popis:** Moje hlavní stránka na GitHubu s přehledem projektů.  
+
