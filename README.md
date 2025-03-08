@@ -33,8 +33,8 @@
 📖 **Popis:** Aplikace základních ML algoritmů na analýzu dvourozměrných dat.  
 
 ### 🎮 Jednoduchá SQL databáze esportových hráčů
-🔗 [Repozitář](https://github.com/davekral/esports-sql)
-📖 **Popis:** Architektura databáze pro uchování informací o hráčích League of Legends, bez konkrétních dat.  
+🔗 [Repozitář](https://github.com/davekral/esports-sql)  
+📖 **Popis:** Architektura databáze pro uchování informací o hráčích League of Legends, bez konkrétních dat.
 
 ### 🎮 Analýza odpalu ve hře *Golf With Your Friends*  
 🔗 [Repozitář](https://github.com/davekral/golf-analysis)  
