@@ -1,7 +1,7 @@
 # Ahoj, jmenuji se David Král! 👋
 
 💻 Zajímám se o **Umělou inteligenci, automatizaci a analýzu dat**  
-🚀 Pracuji na **projektu s analýzou Golf With Your Friends**  
+🎓 Studuji na **Fakultě aplikovaných věd, ZČU**  
 📫 Kontakt: [davidkral03@gmail.com]  
 
 ---
@@ -16,7 +16,7 @@
 🔗 [Repozitář](https://github.com/davekral/automation-script)  
 📖 **Popis:** Skript pro automatizaci určitého procesu pomocí Selenium.
 
-### 🌐 Portfolio jako repozitář  
+### 🌐 Portfolio 
 🔗 [Tento repozitář](https://github.com/davekral)  
 📖 **Popis:** Moje hlavní stránka na GitHubu s přehledem projektů.  
 
