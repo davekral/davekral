@@ -1,0 +1,711 @@
+#include <Arduino.h>
+#include "MeAuriga.h"
+#include "MeRGBLineFollower.h"
+#include "TimerThree.h"
+
+
+// Levý motor
+const int pwmMotorPravy = 11;
+const int inMotorPravy1 = 49;
+const int inMotorPravy2 = 48;
+
+// Pravý motor
+const int pwmMotorLevy = 10;
+const int inMotorLevy1 = 47;
+const int inMotorLevy2 = 46;
+
+int rychlostJizdy = 200;
+int minRychlost = 100;
+int maxRychlost = 255;
+
+// Ultrazvukovy snimac
+// pouziti: vzdalenost = sonar.distanceCm()
+MeUltrasonicSensor sonar(PORT_10);
+
+// Snimac cary
+// pouziti: linState = RGBLineFollower.getPositionState();
+//          lineOffset = RGBLineFollower.getPositionOffset();
+MeRGBLineFollower RGBLineFollower(PORT_9);
+
+// Servo
+const byte servoPin = 68;
+const byte servoMin = 13;
+const byte servoMax = 137;
+Servo servo;
+
+// narazniky
+const byte pravyNaraznik = 67;
+const byte levyNaraznik = 62;
+volatile boolean narazVpravo = false;
+volatile boolean narazVlevo = false;
+
+// promenne pro enkodery
+// enkoder pro pravy motor
+const byte pravyEnkoderA = 19; // INT2
+const byte pravyEnkoderB = 42; // no interrupts :(
+
+// enkoder pro levy motor
+const byte levyEnkoderA = 18; // INT3
+const byte levyEnkoderB = 43; // no interrupts :(
+
+const int enkoderPulseNumber = 9;
+const float motorGearRatio = 39.267;
+
+volatile long pulseCountVlevo = 0;
+volatile long pulseCountVpravo = 0;
+
+// RGB LED ring
+const byte numberOfLEDs = 12;
+const byte rgbLEDringPin = 44;
+#define RINGALLLEDS        0
+MeRGBLed ledRing(0, numberOfLEDs );
+
+#define amber      255,194,000
+#define orange     255,165,000
+#define vermillion 227,066,052
+#define red        255,000,000
+#define magenta    255,000,255
+#define purple     128,000,128
+#define indigo     075,000,130
+#define blue       000,000,255
+#define aquamarine 127,255,212
+#define green      000,255,000
+#define chartreuse 127,255,000
+#define yellow     255,255,000
+#define white      000,000,000
+#define black      255,255,255
+
+// bzučák
+const byte buzzerPin = 45;
+MeBuzzer buzzer;
+
+// Gyro
+MeGyro gyro(1,0x69);
+
+volatile byte state = 0;
+volatile bool removed = false;
+volatile bool emergencyStop = false;
+volatile bool intersectionProbably = false;
+volatile bool intersectionDetected = false;
+volatile byte intersectionProbability = 0;
+volatile uint8_t lineState = 0;
+volatile uint8_t lineOffset = 0;
+volatile uint8_t RGB1 = 0;
+volatile uint8_t RGB2 = 0;
+volatile uint8_t RGB3 = 0;
+volatile uint8_t RGB4 = 0;
+
+#define MAX_SIZE 50
+
+class Stack {
+  private:
+    int top;
+    int data[MAX_SIZE];
+
+  public:
+    Stack() {
+      top = -1; // Initialize top to -1 to indicate an empty stack
+    }
+
+    bool push(int value) {
+      if (top >= MAX_SIZE - 1) {
+        // Stack is full
+        return false;
+      } else {
+        top++;
+        data[top] = value;
+        return true;
+      }
+    }
+
+    int pop() {
+      if (top < 0) {
+        // Stack is empty
+        return -1;
+      } else {
+        int value = data[top];
+        top--;
+        return value;
+      }
+    }
+
+    int peek() {
+      if (top < 0) {
+        // Stack is empty
+        return -1;
+      } else {
+        int value = data[top];
+        return value;
+      }
+    }
+
+    bool isEmpty() {
+      return top < 0;
+    }
+
+    bool isFull() {
+      return top >= MAX_SIZE - 1;
+    }
+
+    int getTop(){
+      return top;
+    }
+};
+
+Stack stack1;
+Stack stack2;
+Stack path;
+
+void setup() {
+
+  // nastav piny narazniku
+  pinMode(pravyNaraznik,INPUT_PULLUP);
+  pinMode(levyNaraznik,INPUT_PULLUP);
+
+  // nastavení ovladacích pinů motorů jako výstupní
+  pinMode(pwmMotorPravy,OUTPUT);
+  pinMode(inMotorPravy1,OUTPUT);
+  pinMode(inMotorPravy2,OUTPUT);
+
+  pinMode(pwmMotorLevy,OUTPUT);
+  pinMode(inMotorLevy1,OUTPUT);
+  pinMode(inMotorLevy2,OUTPUT);
+
+  // Nastavení frekvencep pwm na 8KHz pro řízení DC motorů
+  TCCR1A = _BV(WGM10);
+  TCCR1B = _BV(CS11) | _BV(WGM12);
+
+  TCCR2A = _BV(WGM21) | _BV(WGM20);
+  TCCR2B = _BV(CS21);
+
+  // inicializace enkoderu
+  pinMode(pravyEnkoderA,INPUT_PULLUP);
+  pinMode(pravyEnkoderB,INPUT_PULLUP);
+  pinMode(levyEnkoderA,INPUT_PULLUP);
+  pinMode(levyEnkoderB,INPUT_PULLUP);
+
+  // inicializace obsluhy preruseni od kanalů A enkoderů
+  attachInterrupt(digitalPinToInterrupt(pravyEnkoderA),&pravyEncoderAInt, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(levyEnkoderA),&levyEncoderAInt, CHANGE);
+
+  // pripoj a omez servo
+  servo.attach(servoPin);//,servoMin,servoMax);
+  servo.write(90);
+
+  // inicializace RGB LED ringu
+  // pro ovládání slouží metoda
+  // bool MeRGBLed::setColor(uint8_t index, uint8_t red, uint8_t green, uint8_t blue)
+  ledRing.setpin( rgbLEDringPin );
+  ledRing.setColor( RINGALLLEDS, 0, 0, 0);
+  ledRing.show();
+
+  // nastavení bzučáku
+  buzzer.setpin(buzzerPin);
+  buzzer.noTone();
+
+  // inicializace gyra
+  gyro.begin();
+  
+  // inicializace sledovani cary
+  RGBLineFollower.begin();
+  RGBLineFollower.setKp(0.5);
+
+  // inicializace sériového kanálu
+  Serial.begin(115200);
+
+  while (digitalRead(levyNaraznik)) {
+    // nepokracuj dokud neni stiknut levy naraznik
+    delay(100);
+  }
+  ledRing.setColor(RINGALLLEDS, aquamarine);
+  ledRing.show();
+  delay(200);
+  while (digitalRead(levyNaraznik)) {
+    // nepokracuj dokud neni stiknut levy naraznik
+    delay(100);
+  }
+  ledRing.setColor(RINGALLLEDS, indigo);
+  ledRing.show();
+  delay(2000);
+}
+
+void forward(int speed){
+  levyMotorVpred(speed);
+  pravyMotorVpred(speed);
+}
+
+void backward(int speed){
+  levyMotorVzad(speed);
+  pravyMotorVzad(speed);
+}
+
+void stop(){
+  levyMotorStop();
+  pravyMotorStop();
+}
+
+// one step follow line
+void lineFollow(float speedRatio){
+  getLineStateOffset();
+  levyMotorVpred((100+lineOffset)*speedRatio);
+  pravyMotorVpred((100-lineOffset)*speedRatio);
+}
+
+// sejmuti dat z detektoru cary
+void getLineStateOffset(){
+  RGBLineFollower.loop();
+  lineState = RGBLineFollower.getPositionState();
+  lineOffset = RGBLineFollower.getPositionOffset();
+}
+
+int crossingType(){
+  ledRing.setColor( RINGALLLEDS, 0, 0, 0);
+  ledRing.show();
+  getLineStateOffset();
+  int first = lineState;
+  forward(100);
+  delay(300);
+  stop();
+  getLineStateOffset();
+  int second = lineState;
+  if(first==0){
+    if(second==0){
+      ledRing.setColor(RINGALLLEDS, green);
+      ledRing.show();
+      delay(250);
+      return 8;
+    }
+    else if(second==9||second==11||second==13){
+      ledRing.setColorAt(2,green);
+      ledRing.setColorAt(5,green);
+      ledRing.setColorAt(8,green);
+      ledRing.setColorAt(11,green);
+      ledRing.show();
+      delay(250);
+      return 3;
+    }
+    else if(second==15){
+      ledRing.setColorAt(5,green);
+      ledRing.setColorAt(8,green);
+      ledRing.setColorAt(11,green);
+      ledRing.show();
+      delay(250);
+      return 6;
+    }
+    else{
+      delay(250);
+      return 9;
+    }
+  }
+  else if(first==1||first==3){
+    if(second==9||second==11||second==13){
+      ledRing.setColorAt(2,green);
+      ledRing.setColorAt(5,green);
+      ledRing.setColorAt(8,green);
+      ledRing.show();
+      delay(250);
+      return 4;
+    }
+    else if(second==15){
+      ledRing.setColorAt(5,green);
+      ledRing.setColorAt(8,green);
+      ledRing.show();
+      delay(250);
+      return 2;
+    }
+    else{
+      delay(250);
+      return 9;
+    }
+  }
+  else if(first==8||first==12){
+    if(second==9||second==11||second==13){
+      ledRing.setColorAt(2,green);
+      ledRing.setColorAt(8,green);
+      ledRing.setColorAt(11,green);
+      ledRing.show();
+      delay(250);
+      return 5;
+    }
+    else if(second==15){
+      ledRing.setColorAt(8,green);
+      ledRing.setColorAt(11,green);
+      ledRing.show();
+      delay(250);
+      return 1;
+    }
+    else{
+      delay(250);
+      return 9;
+    }
+  }
+  else if(first==15){
+    ledRing.setColorAt(1,green);
+    ledRing.setColorAt(3,green);
+    ledRing.setColorAt(7,green);
+    ledRing.setColorAt(9,green);
+    ledRing.show();
+    delay(250);
+    return 7;
+  }
+  else{
+    delay(250);
+    return 9;
+  }
+}
+
+// state 0 - rides forward until intersection detected
+void forwardAndDetect(){
+  intersectionDetected = false;
+  intersectionProbability = 0;
+  getLineStateOffset();
+  lineFollow(1.0);
+  // ride until detected
+  while(!intersectionDetected){
+    lineFollow(1.0);
+    if(lineState == 0 || lineState == 1 || lineState == 8 || lineState == 15){
+    intersectionProbably = true;
+    }else{
+      intersectionProbably = false;
+    }
+    if(intersectionProbably){
+      intersectionProbability += 1;
+    }else{
+      intersectionProbability = 0;
+    }
+    if(intersectionProbability>5){
+      intersectionDetected = true;
+    }
+  }
+  stop();
+  delay(200);
+  getLineStateOffset();
+}
+
+void leftTurnRobust(){
+  ledRing.setColor( RINGALLLEDS, 0, 0, 0);
+  ledRing.setColorAt(11, red);
+  ledRing.show();
+  leftTurn(100);
+  while(lineState!=14){
+    getLineStateOffset();
+  }
+  ledRing.setColorAt(0, red);
+  ledRing.setColorAt(10, red);
+  ledRing.show();
+  while(lineState!=13){
+    getLineStateOffset();
+  }
+  ledRing.setColorAt(1, red);
+  ledRing.setColorAt(9, red);
+  ledRing.show();
+  while(lineState!=9){
+    getLineStateOffset();
+  }
+  ledRing.setColorAt(2, red);
+  ledRing.setColorAt(8, red);
+  ledRing.show();
+  stop();
+  delay(100);
+}
+
+void rightTurnRobust(){
+  ledRing.setColor( RINGALLLEDS, 0, 0, 0);
+  ledRing.setColorAt(5, red);
+  ledRing.show();
+  rightTurn(100);
+  while(lineState!=7){
+    getLineStateOffset();
+  }
+  ledRing.setColorAt(4, red);
+  ledRing.setColorAt(6, red);
+  ledRing.show();
+  while(lineState!=11){
+    getLineStateOffset();
+  }
+  ledRing.setColorAt(3, red);
+  ledRing.setColorAt(7, red);
+  ledRing.show();
+  while(lineState!=9){
+    getLineStateOffset();
+  }
+  ledRing.setColorAt(2, red);
+  ledRing.setColorAt(8, red);
+  ledRing.show();
+  stop();
+  delay(100);
+}
+
+void forwardCrossing(){
+  for(int i = 0; i<5000; i++){
+    lineFollow(1.0);
+  }
+}
+// state 4 - final dance
+void victoryRoyale(){
+  for(int i = 0; i<2; i++){
+    ledRing.setColor(RINGALLLEDS, red);
+    ledRing.show();
+    forward(255);
+    delay(120);
+    stop();
+    delay(13);
+    backward(255);
+    delay(120);
+    stop();
+    delay(13);
+    forward(255);
+    delay(120);
+    stop();
+    delay(13);
+    backward(255);
+    delay(120);
+    stop();
+    delay(13);
+
+    ledRing.setColor(RINGALLLEDS, blue);
+    ledRing.show();
+    leftTurn(255);
+    delay(120);
+    stop();
+    delay(280);
+
+    ledRing.setColor(RINGALLLEDS, red);
+    ledRing.show();
+    rightTurn(255);
+    delay(120);
+    stop();
+    delay(280);
+
+    ledRing.setColor(RINGALLLEDS, blue);
+    ledRing.show();
+    leftTurn(255);
+    delay(700);
+    stop();
+    delay(100);
+  }
+}
+
+void ledStack(){
+  ledRing.setColor(RINGALLLEDS, 0,0,0);
+  ledRing.show();
+  int counter = 0;
+  int topOfStack = path.getTop();
+  while(counter<=topOfStack){
+    int popped;
+    popped = path.pop();
+    stack2.push(popped);
+    if(popped==0){
+      ledRing.setColorAt(counter, orange);
+      ledRing.show();
+    }
+    else if(popped==1){
+      ledRing.setColorAt(counter, green);
+      ledRing.show();
+    }
+    else{
+      ledRing.setColorAt(counter, purple);
+      ledRing.show();
+    }
+    counter = counter+1;
+  }
+}
+
+void loop() {
+  searchAlgorithm();
+
+  // while(true){
+  //   forwardAndDetect();
+  //   if(lineState==0 || lineState==8 || lineState==15){
+  //     leftTurnUntilLine();
+  //     getLineStateOffset();
+  //     if(lineState==0){
+  //       leftTurnUntilLine();
+  //     }
+  //   }
+  //   else if(lineState==1){
+  //     rightTurnUntilLine();
+  //   }
+  // }
+  ledStack();
+  while (digitalRead(levyNaraznik)) {
+    // nepokracuj dokud neni stisknut levy naraznik
+    delay(100);
+  }
+  while(true){
+    if(stack2.isEmpty()){
+      break;
+    }
+    int nextRoute = stack2.pop();
+    getLineStateOffset();
+    ledRing.setColor(RINGALLLEDS, green);
+    ledRing.show();
+    forwardAndDetect();
+    if(nextRoute==1){
+      crossingType();
+      forwardCrossing();
+    }
+    else if(nextRoute==0){
+      crossingType();
+      leftTurnRobust();
+    }
+    else if(nextRoute==2){
+      crossingType();
+      rightTurnRobust();
+    }
+  }
+}
+
+// osetreni preruseni od kanalu A enkoderu na pravem motoru
+void pravyEncoderAInt() {
+
+}
+
+// osetreni preruseni od kanalu A enkoderu na levem motoru
+void levyEncoderAInt() {
+  
+}
+
+void levyMotorVpred(int rychlost) {
+  digitalWrite(inMotorLevy1, HIGH);
+  digitalWrite(inMotorLevy2, LOW);
+  analogWrite(pwmMotorLevy, rychlost);
+}
+
+void levyMotorVzad(int rychlost) {
+  digitalWrite(inMotorLevy1, LOW);
+  digitalWrite(inMotorLevy2, HIGH);
+  analogWrite(pwmMotorLevy, rychlost);
+}
+
+void levyMotorStop() {
+  analogWrite(pwmMotorLevy, 0);
+}
+
+void pravyMotorVpred(int rychlost) {
+  digitalWrite(inMotorPravy1, LOW);
+  digitalWrite(inMotorPravy2, HIGH);
+  analogWrite(pwmMotorPravy, rychlost);
+}
+
+void pravyMotorVzad(int rychlost) {
+  digitalWrite(inMotorPravy1, HIGH);
+  digitalWrite(inMotorPravy2, LOW);
+  analogWrite(pwmMotorPravy, rychlost);
+}
+
+void pravyMotorStop() {
+  analogWrite(pwmMotorPravy, 0);
+}
+
+void leftTurn(int speed){
+  pravyMotorVpred(speed+10);
+  levyMotorVzad(speed);
+}
+
+void rightTurn(int speed){
+  levyMotorVpred(speed);
+  pravyMotorVzad(speed+10);
+}
+void searchAlgorithm(){
+
+  int crossing = 0;
+  // forwardAndDetect();
+  // path.push(1);
+  // forwardCrossing();
+  while(true){
+    forwardAndDetect();
+    crossing = crossingType();
+    while(crossing==9){
+      backward(100);
+      delay(250);
+      stop();
+      forwardAndDetect();
+      crossing = crossingType();
+    }
+    if(removed==false){
+      if(crossing==1||crossing==3||crossing==5||crossing==6){
+        leftTurnRobust();
+        path.push(0);
+        continue;
+      }
+      else if(crossing==2){
+        rightTurnRobust();
+        path.push(2);
+        continue;
+      }
+      else if(crossing==4){
+        forwardCrossing();
+        path.push(1);
+        continue;
+      }
+      else if(crossing==7){
+        leftTurnRobust();
+        removed = true;
+        continue;
+      }
+      else{
+        victoryRoyale();
+        stop();
+        break;
+      }
+    }
+    else{
+      int stackTop = path.peek();
+      if(stackTop==0){
+        if(crossing==2){
+          rightTurnRobust();
+          path.pop();
+          continue;
+        }
+        else if(crossing==3){
+          leftTurnRobust();
+          path.pop();
+          path.push(1);
+          removed = false;
+          continue;
+        }
+        else if(crossing==4){
+          forwardCrossing();
+          path.pop();
+          path.push(2);
+          removed = false;
+          continue;
+        }
+        else{
+          leftTurnRobust();
+          path.pop();
+          path.push(1);
+          removed = false;
+          continue;
+        }
+      }
+      else if(stackTop==1){
+        if(crossing==3){
+          leftTurnRobust();
+          path.pop();
+          path.push(2);
+          removed = false;
+          continue;
+        }
+        else if(crossing==4){
+          forwardCrossing();
+          path.pop();
+          continue;
+        }
+        else{
+          leftTurnRobust();
+          path.pop();
+          path.push(2);
+          removed = false;
+          continue;
+        }
+      }
+      else{
+        leftTurnRobust();
+        path.pop();
+        continue;
+      }
+    }
+  }
+}
