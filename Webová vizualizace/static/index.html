@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Výběr Týmů</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            min-height: 100vh;
+            background-color: #fff;
+            color: #333;
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.3s ease;
+            position: relative;
+        }
+
+        #logout-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 15px;
+            font-size: 1em;
+            cursor: pointer;
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        #logout-button:hover {
+            background-color: #a71d2a;
+            box-shadow: 0px 6px 18px rgba(0, 0, 0, 0.15);
+        }
+
+        #teams-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            padding: 30px;
+            max-width: 1200px;
+        }
+
+        .team-card {
+            background-color: #f0f0f0;
+            color: #333;
+            width: 200px;
+            height: 200px;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            text-decoration: none;
+            border: 4px solid transparent;
+        }
+
+        .team-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0px 6px 18px rgba(0, 0, 0, 0.15);
+        }
+
+        .team-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin-bottom: 10px;
+        }
+
+        .team-name {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .team-black .team-circle { background-color: #000; }
+        .team-blue .team-circle { background-color: #007bff; }
+        .team-pink .team-circle { background-color: #ff69b4; }
+        .team-yellow .team-circle { background-color: #ffd700; }
+        .team-red .team-circle { background-color: #dc3545; }
+        .team-green .team-circle { background-color: #28a745; }
+
+        @media (max-width: 768px) {
+            #teams-container {
+                flex-direction: column;
+                gap: 20px;
+                align-items: center;
+                padding-bottom: 50px;
+            }
+            html, body {
+                overflow-y: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button id="logout-button" onclick="logout()">Odhlásit se</button>
+
+    <div id="teams-container">
+        <a href="/team_template.html?team=black" class="team-card team-black" data-bg-color="#000">
+            <div class="team-circle"></div>
+            <div class="team-name">Team Black</div>
+        </a>
+        <a href="/team_template.html?team=blue" class="team-card team-blue" data-bg-color="#007bff">
+            <div class="team-circle"></div>
+            <div class="team-name">Team Blue</div>
+        </a>
+        <a href="/team_template.html?team=pink" class="team-card team-pink" data-bg-color="#ff69b4">
+            <div class="team-circle"></div>
+            <div class="team-name">Team Pink</div>
+        </a>
+        <a href="/team_template.html?team=yellow" class="team-card team-yellow" data-bg-color="#ffd700">
+            <div class="team-circle"></div>
+            <div class="team-name">Team Yellow</div>
+        </a>
+        <a href="/team_red.html?team=red" class="team-card team-red" data-bg-color="#dc3545">
+            <div class="team-circle"></div>
+            <div class="team-name">Team Red</div>
+        </a>
+        <a href="/team_template.html?team=green" class="team-card team-green" data-bg-color="#28a745">
+            <div class="team-circle"></div>
+            <div class="team-name">Team Green</div>
+        </a>
+    </div>
+
+    <script>
+        const teamCards = document.querySelectorAll('.team-card');
+
+        teamCards.forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                const bgColor = card.getAttribute('data-bg-color');
+                document.body.style.backgroundColor = bgColor;
+            });
+            card.addEventListener('mouseleave', () => {
+                document.body.style.backgroundColor = '#fff'; // Výchozí barva pozadí
+            });
+        });
+
+        function logout() {
+            window.location.href = "/logout";
+        }
+    </script>
+</body>
+</html>

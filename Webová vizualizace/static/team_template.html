@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="team-title">...</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Roboto', sans-serif;
+            transition: background-color 0.3s ease;
+        }
+        .back-arrow {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background-color: #444;
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 50%;
+            font-size: 1.2em;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s ease;
+        }
+        .back-arrow:hover {
+            background-color: #666;
+        }
+        #values-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0px 4px 12px rgba(255, 255, 255, 0.2);
+            width: 90vw;
+            max-width: 1000px;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .value-card {
+            background-color: #333;
+            padding: 20px;
+            border-radius: 12px;
+            width: 220px;
+            text-align: center;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+        .value-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.5);
+        }
+        .value-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+        .value-title {
+            font-size: 1.2em;
+            color: #bbb;
+            margin-bottom: 5px;
+        }
+        .value-data {
+            font-size: 2em;
+            font-weight: bold;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Šipka zpět -->
+    <a href="/index.html" class="back-arrow">↩</a>
+
+    <!-- Kontejner pro zobrazení aktuálních hodnot -->
+    <div id="values-container">
+        <a href="#" class="value-card" id="temperature-card">
+            <div class="value-icon">🌡️</div>
+            <div class="value-title">Aktuální Teplota</div>
+            <div class="value-data" id="temperature-value">N/A</div>
+        </a>
+        <a href="#" class="value-card" id="humidity-card">
+            <div class="value-icon">💧</div>
+            <div class="value-title">Aktuální Vlhkost</div>
+            <div class="value-data" id="humidity-value">N/A</div>
+        </a>
+        <a href="#" class="value-card" id="illumination-card">
+            <div class="value-icon">💡</div>
+            <div class="value-title">Aktuální Osvětlení</div>
+            <div class="value-data" id="illumination-value">N/A</div>
+        </a>
+    </div>
+
+    <script>
+        // Načtení parametrů z URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const team = urlParams.get('team') || 'red'; // Výchozí tým
+        document.title = `Tým: ${team}`;
+        const temperatureCard = document.getElementById('temperature-card');
+        temperatureCard.href = `temperature_template.html?team=${team}`;
+        const humidityCard = document.getElementById('humidity-card');
+        humidityCard.href = `humidity_template.html?team=${team}`;
+        const illuminationCard = document.getElementById('illumination-card');
+        illuminationCard.href = `illumination_template.html?team=${team}`;
+
+        // Nastavení barvy pozadí na základě týmu
+        document.body.style.backgroundColor = team === 'black' ? '#000' :
+                                              team === 'blue' ? '#007bff' :
+                                              team === 'pink' ? '#ff69b4' :
+                                              team === 'yellow' ? '#ffd700' :
+                                              team === 'red' ? '#dc3545' :
+                                              team === 'green' ? '#28a745' : '#ffffff';
+
+        // Funkce pro načtení dat z API
+        async function fetchData() {
+            const timeTo = new Date().toISOString();
+            const apiUrl = `https://sulis59.zcu.cz/getMeasurements?teamName=${team}&timeTo=${timeTo}`;
+
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+
+                // Výpis posledního záznamu, pokud je k dispozici
+                if (data && data.length > 0) {
+                    const parsedData = data.map(item => JSON.parse(item)).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                    const latestData = parsedData[parsedData.length - 1];
+
+                    // Výpis timestampu do konzole
+                    console.log(`Poslední data mají timestamp: ${latestData.timestamp}`);
+
+                    // Aktualizace DOM elementů
+                    document.getElementById('temperature-value').textContent =
+                        latestData.temperature !== undefined ? `${latestData.temperature.toFixed(1)} °C` : "N/A";
+                    document.getElementById('humidity-value').textContent =
+                        latestData.humidity !== undefined ? `${latestData.humidity.toFixed(1)} %` : "N/A";
+                    document.getElementById('illumination-value').textContent =
+                        latestData.illumination !== undefined ? `${latestData.illumination.toFixed(1)} lux` : "N/A";
+                } else {
+                    console.warn("Žádná data nebyla nalezena.");
+                }
+            } catch (error) {
+                console.error("Chyba při načítání dat:", error);
+            }
+        }
+
+        // Pravidelná aktualizace stránky každých 60 sekund
+        setInterval(() => {
+            location.reload();
+        }, 60000);
+
+        // Načtení dat při inicializaci
+        fetchData();
+    </script>
+</body>
+</html>

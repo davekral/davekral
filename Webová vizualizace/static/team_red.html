@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tým Red</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #dc3545;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Roboto', sans-serif;
+            flex-direction: column;
+        }
+        .back-arrow {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background-color: #444;
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 50%;
+            font-size: 1.2em;
+            text-decoration: none;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .back-arrow:hover { background-color: #666; }
+
+        #values-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            width: 90%;
+            max-width: 1000px;
+        }
+        .value-card {
+            background-color: #333;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            color: white;
+            width: 180px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .value-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.5);
+        }
+        .value-icon {
+            font-size: 2.5em;
+        }
+
+        .form-section {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin-top: 20px;
+            width: 90%;
+            max-width: 1000px;
+        }
+        .input-container {
+            background-color: #333;
+            color: white;
+            border-radius: 10px;
+            padding: 15px;
+            width: 45%;
+            text-align: center;
+        }
+        .input-container input, .input-container select {
+            width: 70px;
+            padding: 5px;
+            margin-bottom: 5px;
+            margin-right: 5px;
+            border: none;
+            border-radius: 5px;
+        }
+        .input-container button {
+            padding: 5px 10px;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+        }
+        .input-container button:hover { background-color: #0056b3; }
+        .formatted-boundaries {
+            font-size: 1em;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <!-- Šipka zpět -->
+    <a href="/index.html" class="back-arrow">↩</a>
+
+    <!-- Kontejner pro aktuální hodnoty -->
+    <div id="values-container">
+        <a href="/temperature_red.html" class="value-card">
+            <div class="value-icon">🌡️</div>
+            <div>Teplota</div>
+            <div id="temperature-value">N/A</div>
+        </a>
+        <a href="/humidity_red.html" class="value-card">
+            <div class="value-icon">💧</div>
+            <div>Vlhkost</div>
+            <div id="humidity-value">N/A</div>
+        </a>
+        <a href="/illumination_red.html" class="value-card">
+            <div class="value-icon">💡</div>
+            <div>Osvětlení</div>
+            <div id="illumination-value">N/A</div>
+        </a>
+        <a href="/bonus_red.html" class="value-card">
+            <div class="value-icon">🌡️</div>
+            <div>Bonus Teplota</div>
+            <div id="bonus-temperature-value">N/A</div>
+        </a>
+    </div>
+
+    <!-- Nastavení hranic -->
+    <div class="form-section">
+        <div class="input-container">
+            <h3>Nastavení Hranic</h3>
+            <select id="sensor">
+                <option value="temperature">Teplota</option>
+                <option value="humidity">Vlhkost</option>
+                <option value="illumination">Osvětlení</option>
+            </select>
+            <label>Dolní:</label><input type="number" id="lower-bound" placeholder="0">
+            <label>Horní:</label><input type="number" id="upper-bound" placeholder="100">
+            <button onclick="setBoundaries()">Uložit</button>
+        </div>
+        <div class="input-container">
+            <h3>Aktuální Hranice</h3>
+            <div id="current-boundaries" class="formatted-boundaries">Načítání...</div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchData() {
+            try {
+                const dataResponse = await fetch("https://sulis59.zcu.cz/getMeasurements?teamName=red");
+                const bonusResponse = await fetch("https://sulis59.zcu.cz/getMeasurements?teamName=red&extra=true");
+                const boundariesResponse = await fetch("https://sulis59.zcu.cz/boundaries");
+
+                const data = await dataResponse.json();
+                const bonusData = await bonusResponse.json();
+                const boundaries = await boundariesResponse.json();
+
+                // Aktuální hodnoty ze senzorů
+                if (data.length) {
+                    const latest = JSON.parse(data[data.length - 1]);
+                    document.getElementById('temperature-value').textContent = `${latest.temperature} °C`;
+                    document.getElementById('humidity-value').textContent = `${latest.humidity} %`;
+                    document.getElementById('illumination-value').textContent = `${latest.illumination} lux`;
+
+                    checkBoundaries({
+                        temperature: latest.temperature,
+                        humidity: latest.humidity,
+                        illumination: latest.illumination
+                    });
+                }
+                if (bonusData.length) {
+                    const bonusLatest = JSON.parse(bonusData[bonusData.length - 1]);
+                    document.getElementById('bonus-temperature-value').textContent = `${bonusLatest.average_temperature_d5} °C`;
+                }
+
+                // Zobrazení hranic
+                let formattedBoundaries = '';
+                boundaries.forEach(boundary => {
+                    const [sensor, lower, upper] = boundary;
+                    formattedBoundaries += `${capitalize(sensor)}: ${lower} - ${upper}<br>`;
+                });
+                document.getElementById('current-boundaries').innerHTML = formattedBoundaries;
+
+            } catch (error) {
+                console.error("Chyba při načítání dat:", error);
+            }
+        }
+
+        async function setBoundaries() {
+            const sensor = document.getElementById('sensor').value;
+            const lower = document.getElementById('lower-bound').value;
+            const upper = document.getElementById('upper-bound').value;
+
+            const url = `https://sulis59.zcu.cz/boundaries?sensor=${sensor}&lower=${lower}&upper=${upper}`;
+            console.log("===== Debug: Nastavení hranic =====");
+            console.log("URL:", url);
+            console.log("Dolní hranice:", lower, "Horní hranice:", upper);
+
+            try {
+                const response = await fetch(url, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ lower, upper })
+                });
+                console.log("Stav odpovědi serveru:", response.status);
+                const responseText = await response.text();
+                console.log("Odpověď serveru:", responseText);
+
+                if (response.ok) {
+                    alert("Hranice byly úspěšně nastaveny.");
+                    fetchData();
+                } else {
+                    alert("Chyba při nastavování hranic.");
+                }
+            } catch (error) {
+                console.error("Chyba při nastavování hranic:", error);
+            }
+        }
+
+        function checkBoundaries(values) {
+            fetch("https://sulis59.zcu.cz/boundaries")
+                .then(response => response.json())
+                .then(boundaries => {
+                    let notifications = [];
+                    boundaries.forEach(([sensor, lower, upper]) => {
+                        if (values[sensor] !== undefined && (values[sensor] < lower || values[sensor] > upper)) {
+                            notifications.push(`${capitalize(sensor)} je mimo hranice: ${values[sensor]}`);
+                        }
+                    });
+                    if (notifications.length > 0) {
+                        notifyUser(notifications.join("\n"));
+                    }
+                })
+                .catch(error => console.error("Chyba při kontrole hranic:", error));
+        }
+
+        function capitalize(text) {
+            return text.charAt(0).toUpperCase() + text.slice(1);
+        }
+
+        function notifyUser(message) {
+            if (Notification.permission === "granted") {
+                new Notification("Upozornění", { body: message });
+            } else if (Notification.permission !== "denied") {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        new Notification("Upozornění", { body: message });
+                    }
+                });
+            }
+        }
+
+        // Kontrola podpory notifikací při načtení stránky
+        if ("Notification" in window) {
+            Notification.requestPermission();
+        }
+
+        fetchData();
+        setInterval(fetchData, 60000);
+    </script>
+</body>
+</html>

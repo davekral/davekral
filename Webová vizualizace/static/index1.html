@@ -1,0 +1,186 @@
+<!doctype html>
+<html>
+<head>
+	<title>Take picture using WebRTC</title>
+	<meta charset='utf-8'>
+	<style>
+		#video {
+			border: 1px solid black;
+			box-shadow: 2px 2px 3px black;
+			width:640px;
+			height:480px;
+		}
+
+		#photo {
+			border: 1px solid black;
+			box-shadow: 2px 2px 3px black;
+			width:320px;
+			height:240px;
+		}
+
+		#canvas {
+			display:none;
+		}
+
+		.camera {
+			width: 680px;
+			display:inline-block;
+		}
+
+		.contentarea {
+			text-align: center;
+			font-size: 16px;
+			font-family: "Lucida Grande", "Arial", sans-serif;
+			width: 100%;
+		}
+	</style>
+</head>
+<body>
+<div class="contentarea">
+	<h1>
+		Take picture using WebRTC
+	</h1>
+  <div class="camera">
+    <video id="video">Video stream not available.</video>
+  </div>
+  <div class="buttons">
+    <button id="startbutton">Take photo</button> 
+    <button id="recognizebutton">Recognize</button>
+    <button id="altloginbutton">Alternative Login</button>
+  </div>
+  <p id="results"></p>
+  <canvas id="canvas">
+  </canvas>
+</div>
+<script>
+(function() {
+  var width = 320;    
+  var height = 0;     
+  var streaming = false;
+  var video = null;
+  var canvas = null;
+  var startbutton = null;
+  var recognizebutton = null;
+  var altloginbutton = null;
+  var results = null;
+
+  function startup() {
+    video = document.getElementById('video');
+    canvas = document.getElementById('canvas');
+    startbutton = document.getElementById('startbutton');
+    recognizebutton = document.getElementById('recognizebutton');
+    altloginbutton = document.getElementById('altloginbutton');
+    results = document.getElementById('results');
+
+    navigator.mediaDevices.getUserMedia({video: true, audio: false})
+    .then(function(stream) {
+      video.srcObject = stream;
+      video.play();
+    })
+    .catch(function(err) {
+      console.log("An error occurred: " + err);
+    });
+
+    video.addEventListener('canplay', function(ev){
+      if (!streaming) {
+        height = video.videoHeight / (video.videoWidth/width);
+        if (isNaN(height)) {
+          height = width / (4/3);
+        }
+        video.setAttribute('width', width);
+        video.setAttribute('height', height);
+        canvas.setAttribute('width', width);
+        canvas.setAttribute('height', height);
+        streaming = true;
+      }
+    }, false);
+
+    startbutton.addEventListener('click', function(ev){
+      takepicture();
+      ev.preventDefault();
+    }, false);
+
+    recognizebutton.addEventListener('click', function(ev){
+      recognize();
+      ev.preventDefault();
+    }, false);
+
+    altloginbutton.addEventListener('click', function(ev){
+      window.location.href = "login.html";
+      ev.preventDefault();
+    }, false);
+  }
+
+  function sendpicture(data) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "/receive_image", true);
+    xhr.setRequestHeader('Content-Type', 'text/plain');
+    xhr.send(data);
+  }
+
+  function takepicture() {
+    var context = canvas.getContext('2d');
+    if (width && height) {
+      canvas.width = width;
+      canvas.height = height;
+      context.drawImage(video, 0, 0, width, height);
+      var data = canvas.toDataURL('image/png');
+      sendpicture(data);
+    }
+  }
+
+  function recognizepicture(data) {
+  var xhr = new XMLHttpRequest();
+  xhr.open("POST", "/recognize", true);
+
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState === 4) {
+      response = JSON.parse(xhr.response);
+      faces = response.faces;
+      console.log(faces);
+      var recognized = faces.filter(face => face.name !== "unknown" && face.prob >= 0.6);
+
+      if (recognized.length > 0) {
+        var recognizedName = recognized[0].name; // Předpokládáme první rozpoznaný obličej
+        alert("Rozpoznán: " + recognizedName);
+
+        // Odeslání na server pro nastavení FaceID přihlášení
+        var loginXhr = new XMLHttpRequest();
+        loginXhr.open("POST", "/faceid_login", true);
+        loginXhr.setRequestHeader("Content-Type", "application/json");
+        loginXhr.onreadystatechange = function() {
+          if (loginXhr.readyState === 4) {
+            var loginResponse = JSON.parse(loginXhr.responseText);
+            if (loginResponse.success) {
+              window.location.href = "index.html"; // Přesměrování na index.html
+            } else {
+              alert("Chyba při FaceID přihlášení: " + loginResponse.message);
+            }
+          }
+        };
+        loginXhr.send(JSON.stringify({ face_id_verified: true, username: recognizedName }));
+      } else {
+        alert("Obličej nerozpoznán nebo pravděpodobnost příliš nízká.");
+      }
+    }
+  };
+  xhr.setRequestHeader("Content-Type", "text/plain");
+  xhr.send(data);
+}
+
+  function recognize() {
+    var context = canvas.getContext('2d');
+    if (width && height) {
+      canvas.width = width;
+      canvas.height = height;
+      context.drawImage(video, 0, 0, width, height);
+      var data = canvas.toDataURL('image/png');
+      recognizepicture(data);
+    }
+  }
+
+  window.addEventListener('load', startup, false);
+})();
+</script>
+</body>
+</html>

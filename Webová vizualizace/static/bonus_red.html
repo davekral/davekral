@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teplota - Debug</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+	    background-color: #dc3545;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            flex-direction: column;
+        }
+        .back-arrow {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background-color: #444;
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 50%;
+            font-size: 1.2em;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s ease;
+        }
+        .back-arrow:hover {
+            background-color: #666;
+        }
+        #chart-container {
+            width: 90vw;
+            height: 80vh;
+            max-width: 1200px;
+            max-height: 600px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 10px;
+        }
+        .button {
+            padding: 10px 20px;
+            font-size: 1em;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        #countdown {
+            font-size: 1.2em;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <!-- Šipka zpět -->
+    <a href="#" id="backArrow" class="back-arrow">↩</a>
+
+    <!-- Kontejner pro graf -->
+    <div id="chart-container">
+        <canvas id="temperatureChart"></canvas>
+    </div>
+
+    <!-- Ovládací prvky -->
+    <div class="controls">
+        <div id="countdown">Aktualizace za: <span id="time-left">60</span> sekund</div>
+        <button id="resetZoom" class="button">Reset Zoom</button>
+        <button id="last24Hours" class="button">Zobrazit posledních 24 hodin</button>
+    </div>
+
+    <script>
+        document.title = `Tým: Red - Bonusová Teplota`;
+        const backArrow = document.getElementById('backArrow');
+        backArrow.href = `/team_red.html`;
+
+        const ctx = document.getElementById('temperatureChart').getContext('2d');
+        const timeLabels = [];
+        const temperatureData = [];
+        let fetchLast24Hours = false;
+        const endpointBase = `https://sulis59.zcu.cz/getMeasurements?teamName=red&extra=true&timeTo=`;
+
+        const temperatureChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: timeLabels,
+                datasets: [{
+                    label: 'Teplota (°C)',
+                    data: temperatureData,
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+		    hitRadius: 10,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            tooltipFormat: 'dd.MM.yyyy HH:mm',
+                            unit: 'minute',
+                            displayFormats: {
+                                minute: 'dd.MM HH:mm',
+                                hour: 'dd.MM HH:mm',
+                                day: 'dd.MM',
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Čas',
+                            color: '#333'
+                        },
+                        ticks: {
+                            color: '#333',
+                            callback: function(value) {
+                                const utcDate = new Date(value);
+                                const localDate = new Date(utcDate.getTime() + 60 * 60 * 1000); // Posun o hodinu
+                                const day = localDate.getDate().toString().padStart(2, '0');
+                                const month = (localDate.getMonth() + 1).toString().padStart(2, '0');
+                                const hours = localDate.getHours().toString().padStart(2, '0');
+                                const minutes = localDate.getMinutes().toString().padStart(2, '0');
+                                return `${day}.${month} ${hours}:${minutes}`;
+                            }
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Teplota (°C)',
+                            color: '#333'
+                        },
+                        ticks: {
+                            beginAtZero: false,
+                            color: '#333'
+                        }
+                    }
+                },
+                plugins: {
+                    zoom: {
+                        zoom: {
+                            drag: {
+                                enabled: true,
+                            },
+                            mode: 'x',
+                        },
+                        pan: {
+                            enabled: true,
+                            mode: 'x',
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                return `Teplota (°C): ${value}`;
+                            },
+                            title: function(context) {
+                                if (context.length) {
+                                    const index = context[0].dataIndex;
+                                    const timestamp = timeLabels[index];
+                                    if (!timestamp) return 'Neznámý čas';
+                                    const utcDate = new Date(timestamp);
+                                    const localDate = new Date(utcDate.getTime() + 60 * 60 * 1000);
+                                    const day = localDate.getDate().toString().padStart(2, '0');
+                                    const month = (localDate.getMonth() + 1).toString().padStart(2, '0');
+                                    const year = localDate.getFullYear();
+                                    const hours = localDate.getHours().toString().padStart(2, '0');
+                                    const minutes = localDate.getMinutes().toString().padStart(2, '0');
+                                    return `${day}.${month}.${year} ${hours}:${minutes}`;
+                                }
+                                return 'Neznámý čas';
+                            }
+                        },
+                        backgroundColor: 'rgba(255, 99, 132, 0.8)',
+                        titleFont: { size: 16 },
+                        bodyFont: { size: 14 },
+                        padding: 10,
+                        cornerRadius: 5
+                    }
+                }
+            }
+        });
+
+        async function fetchData() {
+            const now = new Date();
+            const timeTo = now.toISOString();
+            let timeFrom = '';
+
+            if (fetchLast24Hours) {
+                timeFrom = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+            }
+
+            const endpoint = `${endpointBase}${timeTo}${timeFrom ? `&timeFrom=${timeFrom}` : ''}`;
+            console.log(`Fetching data from: ${endpoint}`);
+
+            try {
+                const response = await fetch(endpoint);
+                const data = await response.json();
+
+                if (data.length === 0) {
+                    console.warn("No data returned from endpoint.");
+                    return;
+                }
+
+                const parsedData = data.map(item => JSON.parse(item));
+                const temperatureMap = new Map(parsedData.map(item => [item.timestamp.slice(0, 16), item.average_temperature_d5]));
+
+                timeLabels.length = 0;
+                temperatureData.length = 0;
+
+                const allTimestamps = [];
+                let currentTime = new Date(parsedData[0].timestamp);
+
+                // Přeskoč první hodinu
+                const firstHourEnd = new Date(currentTime);
+                firstHourEnd.setHours(firstHourEnd.getHours() + 1);
+
+                while (currentTime <= now) {
+                    const isoTime = currentTime.toISOString().slice(0, 16);
+
+                    // Přidávej pouze data po první hodině
+                    if (currentTime >= firstHourEnd) {
+                        allTimestamps.push(isoTime);
+                    }
+
+                    currentTime.setMinutes(currentTime.getMinutes() + 1);
+                }
+
+                let lastKnownValue = null;
+
+                allTimestamps.forEach(timestamp => {
+                    if (temperatureMap.has(timestamp)) {
+                        lastKnownValue = temperatureMap.get(timestamp);
+                    }
+                    timeLabels.push(timestamp);
+                    temperatureData.push(lastKnownValue ?? 0);
+                });
+
+                console.log("Final Chart Data (after first hour removal):", { timeLabels, temperatureData });
+                temperatureChart.update();
+            } catch (error) {
+                console.error("Error fetching or processing data:", error);
+            }
+        }
+
+        function updateCountdown() {
+            const countdownElement = document.getElementById('time-left');
+            let timeLeft = parseInt(countdownElement.textContent);
+
+            if (timeLeft > 0) {
+                countdownElement.textContent = timeLeft - 1;
+            } else {
+                countdownElement.textContent = 60;
+                fetchData();
+            }
+        }
+
+        document.getElementById('resetZoom').addEventListener('click', () => {
+            temperatureChart.resetZoom();
+        });
+
+        const last24HoursButton = document.getElementById('last24Hours');
+
+        last24HoursButton.addEventListener('click', () => {
+            fetchLast24Hours = !fetchLast24Hours; // Přepnutí stavu
+
+            // Změna textu tlačítka podle stavu
+            if (fetchLast24Hours) {
+                last24HoursButton.textContent = 'Zobrazit všechna data';
+            } else {
+                last24HoursButton.textContent = 'Zobrazit posledních 24 hodin';
+            }
+
+            fetchData(); // Načtení nových dat
+        });
+
+
+        fetchData();
+        setInterval(updateCountdown, 1000);
+    </script>
+</body>
+</html>
