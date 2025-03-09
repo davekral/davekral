@@ -1,4 +1,4 @@
-# 🎮 Esportová databáze hráčů  
+# 💾 Esportová databáze hráčů  
 
 ## 📖 Popis  
 Tento projekt obsahuje **SQL databázi pro správu hráčů, týmů a statistik v esportu**.  
