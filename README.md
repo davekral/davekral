@@ -39,4 +39,5 @@
 ### 🎮 Analýza odpalu ve hře *Golf With Your Friends*  
 🔗 [Projekt](https://github.com/davekral/davekral/tree/main/Detekce%20s%C3%ADly%20odpalu%20v%20golfu)  
 📖 **Popis:** Automatická detekce síly odpalu, čísla jamky a stavu hry na základě zpracování obrazových dat.
+
 ---
