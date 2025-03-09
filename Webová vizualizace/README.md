@@ -1,4 +1,4 @@
-# 🌐 Webová vizualizace dat ze senzorů  
+# 📊 Webová vizualizace dat ze senzorů  
 
 🌍 **Online verze**: [sulis69.zcu.cz](https://sulis69.zcu.cz/)  
 
