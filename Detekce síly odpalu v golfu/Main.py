@@ -82,7 +82,7 @@ def detect_power_bar():
     """Detekuje oblast ukazatele síly odpalu na základě barev a kontur a zároveň hledá text 'HOLE'."""
     with mss.mss() as sct:
         while True:
-            # 📸 Snímání celé obrazovky
+            # Snímání celé obrazovky
             screenshot = sct.grab(sct.monitors[1])
             img = np.array(screenshot, dtype=np.uint8)
             img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)  # Konverze z BGRA na BGR
@@ -129,7 +129,7 @@ def get_power_percentage(power_bar_region):
         hole_thread.start()
 
         while not stop_event.is_set():
-            # 📸 Pořízení screenshotu oblasti s ukazatelem síly
+            # Pořízení screenshotu oblasti s ukazatelem síly
             screenshot = sct.grab(power_bar_region)
             img = np.array(screenshot, dtype=np.uint8)
             img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)  # Konverze z BGRA na BGR
@@ -172,7 +172,7 @@ def play_golf():
     time.sleep(10)
 
     while jamka <= 18:
-        print(f"🏌️ Hrajeme jamku {jamka}...")
+        print(f"Hrajeme jamku {jamka}...")
 
         # **Hledáme ukazatel síly odpalu pro první odpal**
         power_bar = detect_power_bar()
