@@ -36,4 +36,7 @@
 🔗 [Projekt](https://github.com/davekral/davekral/tree/main/Automatizace%20tvo%C5%99en%C3%AD%20youtube%20shorts)   
 📖 **Popis:** Automatizovaný systém pro generování a nahrávání YouTube Shorts.  
 
+### 🎮 Analýza odpalu ve hře *Golf With Your Friends*  
+🔗 [Projekt](https://github.com/davekral/davekral/tree/main/Detekce%20s%C3%ADly%20odpalu%20v%20golfu)  
+📖 **Popis:** Automatická detekce síly odpalu, čísla jamky a stavu hry na základě zpracování obrazových dat.
 ---
