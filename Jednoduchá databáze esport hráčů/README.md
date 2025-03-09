@@ -18,4 +18,4 @@ Databáze uchovává informace o hráčích, týmech, ligách, zápasech a stati
 - **`player_statistics`** – uchovává statistiky hráčů jako win rate nebo KDA  
 - **`team_awards`** – sleduje ocenění týmů v různých obdobích
 
-- ![Schéma struktury databáze](schema.png)
+ ![Schéma struktury databáze](schema.png)
