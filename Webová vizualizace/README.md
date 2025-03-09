@@ -12,8 +12,8 @@ Data jsou získávána pomocí **MQTT brokeru** a API dotazů, následně se vyk
 ✅ **Dotazy na API pro aktualizaci informací**  
 ✅ **Interaktivní vizualizace v reálném čase**  
 ✅ **Zabezpečení pomocí Face ID a přihlašování** 
-✅ **Hlídání nastavených rozsahů hodnot**
-✅ **Možnost nastavení hranic veličin u červeného týmu** 
+✅ **Hlídání nastavených rozsahů hodnot**  
+✅ **Možnost nastavení hranic veličin u červeného týmu**   
 
 ## 🔒 Přístup ke stránce  
 Webová stránka je chráněna **Face ID autentizací**, která je natrénována na malou skupinu uživatelů.  
