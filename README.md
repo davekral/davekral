@@ -9,35 +9,31 @@
 ## 📌 Moje projekty  
 
 ### 📊 Vizualizace dat senzoru na webové stránce  
-🔗 [Repozitář](https://github.com/davekral/sensor-visualization)  
+🔗 [Projekt](https://github.com/davekral/davekral/tree/main/Webov%C3%A1%20vizualizace)  
 📖 **Popis:** Zpracování dat ze senzoru a jejich přehledná vizualizace v reálném čase.  
 
 ### 🔢 Automatická detekce a počítání matematických příkladů  
-🔗 [Repozitář](https://github.com/davekral/math-detection)  
-📖 **Popis:** Počítačové vidění pro rozpoznání a řešení matematických příkladů.  
+🔗 [Projekt](https://github.com/davekral/davekral/tree/main/Po%C4%8D%C3%ADt%C3%A1n%C3%AD%20p%C5%99%C3%ADklad%C5%AF)  
+📖 **Popis:** Použití neuronové sítě pro rozpoznání a řešení matematických příkladů.  
 
 ### 🏆 Automatický průzkum bludiště a nalezení nejkratší cesty  
-🔗 [Repozitář](https://github.com/davekral/maze-solver)  
-📖 **Popis:** Algoritmy pro prohledávání prostoru a optimalizaci cesty v simulovaném bludišti.  
+🔗 [Projekt](https://github.com/davekral/davekral/tree/main/Pr%C5%AFzkum%20bludi%C5%A1t%C4%9B)  
+📖 **Popis:** Algoritmy pro prohledávání čárového bludiště, vyhledání nejrychlejší cesty.  
 
 ### 🚀 Uživatelské rozhraní a vizualizace rakety z REST API dat  
-🔗 [Repozitář](https://github.com/davekral/rocket-visualization)  
-📖 **Popis:** Dynamická vizualizace telemetrických dat rakety získaných přes REST API.  
-
-### 🏥 Detekce akcí v chirurgickém šití pomocí YOLO neuronové sítě  
-🔗 [Repozitář](https://github.com/davekral/surgical-yolo)  
-📖 **Popis:** Počítačové vidění pro sledování a klasifikaci pohybů při chirurgickém šití.  
-
+🔗 [Projekt](https://github.com/davekral/davekral/tree/main/Vizualizace%20a%20ovl%C3%A1d%C3%A1n%C3%AD%20REST%20API%20rakety)  
+📖 **Popis:** Dynamická vizualizace dat rakety získaných přes REST API a možnost ovládat raketu.  
+ 
 ### 🤖 Zpracování dvourozměrných dat pomocí metod strojového učení  
-🔗 [Repozitář](https://github.com/davekral/2d-ml-analysis)  
-📖 **Popis:** Aplikace základních ML algoritmů na analýzu dvourozměrných dat.  
+🔗 [Projekt](https://github.com/davekral/davekral/tree/main/Rozd%C4%9Blen%C3%AD%20dvourozm%C4%9Brn%C3%BDch%20dat)  
+📖 **Popis:** Aplikace základních algoritmů strojového učení na analýzu dvourozměrných dat.  
 
-### 🎮 Jednoduchá SQL databáze esportových hráčů
-🔗 [Repozitář](https://github.com/davekral/esports-sql)  
+### 💾 Jednoduchá SQL databáze esportových hráčů
+🔗 [Projekt](https://github.com/davekral/davekral/tree/main/Jednoduch%C3%A1%20datab%C3%A1ze%20esport%20hr%C3%A1%C4%8D%C5%AF)  
 📖 **Popis:** Architektura databáze pro uchování informací o hráčích League of Legends, bez konkrétních dat.
 
-### 🎮 Analýza odpalu ve hře *Golf With Your Friends*  
-🔗 [Repozitář](https://github.com/davekral/golf-analysis)  
-📖 **Popis:** Automatická detekce síly odpalu a analýza úhlů pomocí OpenCV.  
+### 🎬 Automatizace YouTube Shorts  
+🔗 [Projekt](https://github.com/davekral/davekral/tree/main/Automatizace%20tvo%C5%99en%C3%AD%20youtube%20shorts)   
+📖 **Popis:** Automatizovaný systém pro generování a nahrávání YouTube Shorts.  
 
 ---
