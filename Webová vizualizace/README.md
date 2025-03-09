@@ -11,7 +11,7 @@ Data jsou získávána pomocí **MQTT brokeru** a API dotazů, následně se vyk
 ✅ **Získávání dat ze senzorů přes MQTT**  
 ✅ **Dotazy na API pro aktualizaci informací**  
 ✅ **Interaktivní vizualizace v reálném čase**  
-✅ **Zabezpečení pomocí Face ID a přihlašování** 
+✅ **Zabezpečení pomocí Face ID a přihlašování**   
 ✅ **Hlídání nastavených rozsahů hodnot**  
 ✅ **Možnost nastavení hranic veličin u červeného týmu**   
 
