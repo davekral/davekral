@@ -9,6 +9,7 @@ Aplikace komunikuje se serverem pomocí **HTTP požadavků** a vykresluje aktuá
 ✅ **Ovládání rakety pomocí tlačítek a klávesnice**  
 ✅ **Grafické zobrazení rychlosti rakety**  
 ✅ **Detekce nárazu do hranic scény**  
+✅ **Možnost dynamicky měnit velikost plátna**  
 
 ## 🛠 Hlavní funkce  
 
